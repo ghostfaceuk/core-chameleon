@@ -1,0 +1,32 @@
+{
+    "name": "@alessiodf/core-chameleon",
+    "description": "Core Chameleon for ARK Core",
+    "version": "0.0.3",
+    "contributors": [
+        "alessiodf <alessiodf@pm.me>"
+    ],
+    "license": "GPL-3.0-or-later",
+    "main": "dist/index.js",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "compile": "../../node_modules/typescript/bin/tsc",
+        "build": "yarn clean && yarn compile",
+        "clean": "del dist"
+    },
+    "dependencies": {
+        "agent-base": "^6.0.0",
+        "socks": "^2.3.3"
+    },
+    "devDependencies": {
+        "@arkecosystem/core": "^2.6.0"
+    },
+    "prettier": {
+        "printWidth": 100,
+        "singleQuote": false,
+        "tabWidth": 4,
+        "trailingComma": "none",
+        "useTabs": false
+    }
+}

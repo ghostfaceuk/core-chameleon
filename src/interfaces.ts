@@ -1,0 +1,94 @@
+import { Blockchain, Container, P2P } from "@arkecosystem/core-interfaces";
+import { Interfaces } from "@arkecosystem/crypto";
+import { AgentOptions } from "agent-base";
+import { EventEmitter } from "events";
+import { SocksProxy } from "socks";
+import { Url } from "url";
+
+import SocketCluster from "socketcluster";
+import * as SocketClusterClient from "socketcluster-client";
+
+export interface IAgentOptions
+    extends AgentOptions,
+        IBaseAgentOptions,
+        Partial<Omit<Url & SocksProxy, keyof IBaseAgentOptions>> {}
+
+export interface IAppConfig {
+    cli: { forger: { run: { plugins: { include: [string] } } } };
+}
+
+export interface IBaseAgentOptions {
+    host?: string | null;
+    port?: string | number | null;
+    username?: string | null;
+}
+
+export interface IBlockchain extends Blockchain.IBlockchain {
+    enqueueBlocks: (blocks: Interfaces.IBlockData[]) => void;
+}
+
+export interface IBlockResponse {
+    data: Interfaces.IBlockData[];
+}
+
+export interface IBlocks {
+    height: number;
+    blocks: {};
+}
+
+export interface ICommunicator extends P2P.IPeerCommunicator {
+    connector: IConnector;
+    emit: (peer: P2P.IPeer, event: string, data: object, timeout: number) => Promise<P2P.IPeer[]>;
+}
+
+export interface IConnector extends P2P.IPeerConnector {
+    create: (peer: P2P.IPeer | { ip: string; port: number }) => SocketClusterClient.SCClientSocket;
+    terminate: (peer: P2P.IPeer) => void;
+}
+
+export interface IModule {
+    start(): Promise<void>;
+    stop?(): Promise<void>;
+}
+
+export interface IMonitor extends P2P.INetworkMonitor {
+    communicator?: ICommunicator;
+    connector?: IConnector;
+    processor?: P2P.IPeerProcessor;
+    populateSeedPeers?: () => Promise<void>;
+    storage?: P2P.IPeerStorage;
+}
+
+export interface IOptions extends Container.IPluginOptions {
+    enabled: boolean;
+    fetchTransactions: boolean;
+    socket: string;
+    tor: {
+        enabled: boolean;
+        instances: number;
+        path: string;
+    };
+}
+
+export interface IP2P extends IModule {
+    init: () => void;
+}
+
+export interface IPackage {
+    name: string;
+}
+
+export interface IProcess {
+    name: string;
+    pm2_env: { status };
+}
+
+export interface ISocketCluster extends SocketCluster {
+    _launchWorkerCluster?: () => void;
+    workerCluster?: EventEmitter;
+}
+
+export interface IWorkerOptions {
+    oldCwd: string;
+    oldWorkerController: string;
+}
