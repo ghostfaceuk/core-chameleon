@@ -165,7 +165,7 @@ if [ "$?" == "0" ] ; then
         done
     fi
     heading "       Configuring for ${CORE}"
-    if [ ! -z "$(cat ~/.config/$CORE/plugins.js | grep $PLUGIN)" ] ; then
+    if [ ! -z "`grep ${PLUGIN} ~/.config/${CORE}/plugins.js`" ] ; then
         ACTION="remove"
         read -p "       ${BOLD}Plugin is currently present in your Core configuration. Would you like to remove it? [y/N]: ${RESET}" CHOICE
     else
@@ -175,21 +175,31 @@ if [ "$?" == "0" ] ; then
     ESCAPED=${PLUGIN//\//\\\/}
     if [[ "$CHOICE" =~ ^(yes|y|Y) ]] ; then
         if [[ "$ACTION" == "remove" ]] ; then
-            sed -i "/\s\s\s\s\"${ESCAPED}\"/,/^\s\s\s\s}/d" ~/.config/${CORE}/plugins.js 2>> ${LOG}
+            awk -i inplace '/@alessiodf\/core-chameleon/ {on=1} on && /@/ && !/@alessiodf\/core-chameleon/ {on=0} {if (!on) print}' ~/.config/${CORE}/plugins.js 2>> ${LOG}
             if [ "$?" == "0" ] ; then
-                heading "       Removed plugin from ${CORE} configuration. Restart your processes for the changes to take effect."
+                heading "       Removed plugin from ${CORE} configuration"
             else
                 echo "       ${RED}${BOLD}Failed to remove plugin for ${CORE}"
                 error
             fi
         else
-            sed -i "/@arkecosystem\/core-state/i \ \ \ \ \"${ESCAPED}\": {\n\ \ \ \ \ \ \ enabled: true,\n\ \ \ \ }," ~/.config/${CORE}/plugins.js 2>> ${LOG}
+            awk -i inplace '/@arkecosystem\/core-p2p/ {on=1} on && /@/ && !/@arkecosystem\/core-p2p/ {print "    \"@alessiodf/core-chameleon\": {\n        enabled: true,\n    },"; on=0} {print}' ~/.config/${CORE}/plugins.js 2>> ${LOG}
             if [ "$?" == "0" ] ; then
-                heading "       Added plugin to ${CORE} configuration. Restart your processes for the changes to take effect."
+                heading "       Added plugin to ${CORE} configuration"
             else
                 echo "       ${RED}${BOLD}Failed to add plugin for ${CORE}"
                 error
             fi
+        fi
+        readarray -t PROCESSES <<< `(pm2 jlist 2>/dev/null | tail -n1 | jq -r '.[] | select(.name | (endswith("-core") or endswith("-forger") or endswith("-relay"))) | .pm2_env | select(.status == "online") | .name') 2>> ${LOG}`
+        if [ "${PROCESSES[0]}" != "" ] ; then
+            for PROCESS in "${PROCESSES[@]}"; do
+                read -p "       ${BOLD}Do you want to restart the ${PROCESS} process now? [y/N]: ${RESET}" CHOICE
+                if [[ "$CHOICE" =~ ^(yes|y|Y) ]] ; then
+                    heading "       Restarting ${PROCESS}"
+                    pm2 --update-env --silent restart ${PROCESS}
+                fi
+            done
         fi
     else
         heading "       No changes made"
