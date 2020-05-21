@@ -10,7 +10,7 @@ import {
 import { getHeaders } from "@arkecosystem/core-p2p/dist/socket-server/utils/get-headers";
 import { httpie } from "@arkecosystem/core-utils";
 import { isBlockChained } from "@arkecosystem/core-utils/dist/is-block-chained";
-import { Blocks, Crypto, Interfaces, Transactions } from "@arkecosystem/crypto";
+import { Blocks, Crypto, Interfaces } from "@arkecosystem/crypto";
 import { existsSync, unlinkSync } from "fs";
 import { Agent } from "./agent";
 import {
@@ -258,7 +258,8 @@ export class P2P implements IModule {
                         peer,
                         foundBlocks,
                         peers.length > 2 ? 1 : 0,
-                        peer.ports["@arkecosystem/core-api"]
+                        peer.ports["@arkecosystem/core-api"],
+                        0
                     );
                 }
             }
@@ -318,8 +319,9 @@ export class P2P implements IModule {
                         });
                     }
                     if (
-                        body.meta.pageCount > page ||
-                        body.meta.totalCount > allTransactions.length
+                        page < 100 &&
+                        (body.meta.pageCount > page ||
+                            body.meta.totalCount > allTransactions.length)
                     ) {
                         page++;
                         await this.fetchTransactions(url, page);
@@ -354,29 +356,31 @@ export class P2P implements IModule {
         peer: CoreP2P.IPeer,
         foundBlocks: IBlocks,
         minimumPeers: number,
-        apiPort: number
-    ): Promise<void> {
+        apiPort: number,
+        height?: number
+    ): Promise<Interfaces.IBlockData[]> {
         const lastBlock: Interfaces.IBlockData = this.stateStore.getLastBlock().data;
         if (
+            height === 0 &&
             this.stateStore.lastDownloadedBlock &&
             lastBlock.id !== this.stateStore.lastDownloadedBlock.id
         ) {
             this.abort = true;
         }
-        if (!this.abort) {
+        if (!this.abort || height > 0) {
             try {
                 const { body, status } = await httpie.post(
                     `http://${peer.ip}:${apiPort}/api/blocks/search?transform=false`,
                     {
                         agent: this.getAgent(),
                         body: {
-                            height: { from: lastBlock.height + 1 },
+                            height: { from: height > 0 ? height : lastBlock.height + 1 },
                             timestamp: { from: 0, to: Math.floor(new Date().getTime() / 1000) },
                             orderBy: "height:asc"
                         }
                     }
                 );
-                if (status === 200 && !this.abort) {
+                if (status === 200 && (!this.abort || height > 0)) {
                     const blocks: Interfaces.IBlockData[] = body.data;
                     for (const block of blocks) {
                         if (
@@ -391,14 +395,19 @@ export class P2P implements IModule {
                             );
                         }
                     }
-                    if (blocks.length > 0) {
+                    if (height === 0 && blocks.length > 0) {
                         this.processBlocks({ data: blocks }, peer, foundBlocks, minimumPeers);
+                    } else {
+                        if (height > 0) {
+                            return blocks;
+                        }
                     }
                 }
             } catch (error) {
                 //
             }
         }
+        return [];
     }
 
     private async getTransactions(
@@ -462,7 +471,12 @@ export class P2P implements IModule {
             return connection;
         };
 
-        // @ts-ignore
+        if (this.options.apiSync) {
+            this.monitor.downloadedChunksCacheMax = 400;
+        } else if (this.options.tor.enabled) {
+            this.monitor.downloadedChunksCacheMax = 200;
+        }
+
         this.monitor._cleansePeers = this.monitor.cleansePeers;
         this.monitor.cleansePeers = async (): Promise<void> => {
             // this becomes a no-op when forging because we take over and do things differently now
@@ -471,6 +485,174 @@ export class P2P implements IModule {
             this.logger.info(`Refreshing ${this.storage.getPeers().length} peers after fork`);
             await this._cleansePeers({ forcePing: true });
         };
+
+        this.monitor.downloadBlocksFromHeight = async function(
+            fromBlockHeight: number,
+            maxParallelDownloads: number = 10
+        ): Promise<Interfaces.IBlockData[]> {
+            const peersAll: CoreP2P.IPeer[] = this.storage.getPeers();
+
+            if (peersAll.length === 0) {
+                return [];
+            }
+
+            const peersNotForked: CoreP2P.IPeer[] = shuffle(
+                peersAll.filter(peer => !peer.isForked())
+            );
+
+            if (peersNotForked.length === 0) {
+                this.logger.error(
+                    `Could not download blocks: We have ${pluralize(
+                        "peer",
+                        peersAll.length,
+                        true
+                    )} but all ` + `of them are on a different chain than us`
+                );
+                return [];
+            }
+
+            const networkHeight: number = this.getNetworkHeight();
+            let chunkSize: number = 400;
+            if (this.downloadedChunksCacheMax === 400) {
+                chunkSize = 100;
+            } else if (this.downloadedChunksCacheMax === 200) {
+                chunkSize = 200;
+            }
+            let chunksMissingToSync: number;
+            if (!networkHeight || networkHeight <= fromBlockHeight) {
+                chunksMissingToSync = 1;
+            } else {
+                chunksMissingToSync = Math.ceil((networkHeight - fromBlockHeight) / chunkSize);
+            }
+            const chunksToDownload: number = Math.min(
+                chunksMissingToSync,
+                peersNotForked.length,
+                maxParallelDownloads
+            );
+
+            const downloadJobs = [];
+            const downloadResults = [];
+            let someJobFailed: boolean = false;
+            let chunksHumanReadable: string = "";
+
+            for (let i = 0; i < chunksToDownload; i++) {
+                const height: number = fromBlockHeight + chunkSize * i;
+                const isLastChunk: boolean = i === chunksToDownload - 1;
+                const blocksRange: string = `[${height + 1}, ${
+                    isLastChunk ? ".." : height + chunkSize
+                }]`;
+
+                downloadJobs.push(async () => {
+                    if (this.downloadedChunksCache[height] !== undefined) {
+                        downloadResults[i] = this.downloadedChunksCache[height];
+                        delete this.downloadedChunksCache[height];
+                        return;
+                    }
+
+                    let blocks: Interfaces.IBlockData[];
+                    let peer: CoreP2P.IPeer;
+                    let peerPrint: string;
+
+                    const peersToTry = [
+                        peersNotForked[i],
+                        ...shuffle(peersNotForked.slice(chunksToDownload))
+                    ];
+
+                    for (peer of peersToTry) {
+                        peerPrint = `${peer.ip}:${
+                            chunkSize === 100 &&
+                            peer.ports["@arkecosystem/core-api"] &&
+                            peer.ports["@arkecosystem/core-api"] !== -1
+                                ? peer.ports["@arkecosystem/core-api"]
+                                : peer.port
+                        }`;
+                        try {
+                            blocks = await this.communicator.getPeerBlocks(peer, {
+                                fromBlockHeight: height
+                            });
+                            if (blocks.length === chunkSize || (isLastChunk && blocks.length > 0)) {
+                                this.logger.debug(
+                                    `Downloaded blocks ${blocksRange} (${blocks.length}) ` +
+                                        `from ${peerPrint}`
+                                );
+                                downloadResults[i] = blocks;
+                                return;
+                            }
+                        } catch (error) {
+                            //
+                        }
+
+                        if (someJobFailed) {
+                            return;
+                        }
+                    }
+
+                    someJobFailed = true;
+
+                    return;
+                });
+
+                if (chunksHumanReadable.length > 0) {
+                    chunksHumanReadable += ", ";
+                }
+                chunksHumanReadable += blocksRange;
+            }
+
+            this.logger.debug(`Downloading blocks in chunks: ${chunksHumanReadable}`);
+
+            try {
+                await Promise.all(downloadJobs.map(f => f()));
+            } catch (error) {
+                //
+            }
+
+            let downloadedBlocks: Interfaces.IBlockData[] = [];
+
+            let i;
+
+            for (i = 0; i < chunksToDownload; i++) {
+                if (downloadResults[i] === undefined) {
+                    break;
+                }
+                downloadedBlocks = [...downloadedBlocks, ...downloadResults[i]];
+            }
+
+            for (i++; i < chunksToDownload; i++) {
+                if (
+                    downloadResults[i] !== undefined &&
+                    Object.keys(this.downloadedChunksCache).length <= this.downloadedChunksCacheMax
+                ) {
+                    this.downloadedChunksCache[fromBlockHeight + chunkSize * i] =
+                        downloadResults[i];
+                }
+            }
+
+            return downloadedBlocks;
+        };
+
+        this.communicator._getPeerBlocks = this.communicator.getPeerBlocks;
+        this.communicator.getPeerBlocks = async (
+            peer: CoreP2P.IPeer,
+            {
+                fromBlockHeight,
+                blockLimit = this.options.tor.enabled ? 200 : 400,
+                headersOnly
+            }: { fromBlockHeight: number; blockLimit?: number; headersOnly?: boolean }
+        ): Promise<Interfaces.IBlockData[]> => {
+            if (!this.stateStore) {
+                this.stateStore = app.resolvePlugin<State.IStateService>("state").getStore();
+            }
+            const port: number = peer.ports["@arkecosystem/core-api"];
+            if (!this.options.apiSync || isNaN(port) || port === -1) {
+                return this.communicator._getPeerBlocks(peer, {
+                    fromBlockHeight,
+                    blockLimit,
+                    headersOnly
+                });
+            }
+            return this.getBlocks(peer, { height: 0, blocks: [] }, 0, port, fromBlockHeight + 1);
+        };
+
         this.connector.create = create;
     }
 
@@ -486,20 +668,6 @@ export class P2P implements IModule {
         const blocks: Interfaces.IBlockData[] = response.data;
         let lastBlock: Interfaces.IBlockData = this.stateStore.getLastBlock().data;
         if (blocks && blocks.length > 0 && isBlockChained(lastBlock, blocks[0])) {
-            for (const block of blocks) {
-                if (!block.transactions) {
-                    continue;
-                }
-
-                block.transactions = block.transactions.map(
-                    (transaction: Interfaces.ITransactionData): Interfaces.ITransactionData => {
-                        const { data } = Transactions.TransactionFactory.fromData(transaction);
-                        data.blockId = block.id;
-                        return data;
-                    }
-                );
-            }
-
             for (const block of blocks) {
                 if (!foundBlocks.blocks[block.id]) {
                     foundBlocks.blocks[block.id] = 0;

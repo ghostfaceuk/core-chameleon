@@ -37,6 +37,10 @@ export interface IBlocks {
 }
 
 export interface ICommunicator extends P2P.IPeerCommunicator {
+    _getPeerBlocks: (
+        peer: P2P.IPeer,
+        { fromBlockHeight, blockLimit, headersOnly }
+    ) => Promise<Interfaces.IBlockData[]>;
     connector: IConnector;
     emit: (peer: P2P.IPeer, event: string, data: object, timeout: number) => Promise<P2P.IPeer[]>;
 }
@@ -52,14 +56,17 @@ export interface IModule {
 }
 
 export interface IMonitor extends P2P.INetworkMonitor {
+    _cleansePeers?: () => Promise<void>;
     communicator?: ICommunicator;
     connector?: IConnector;
+    downloadedChunksCacheMax?: number;
     processor?: P2P.IPeerProcessor;
     populateSeedPeers?: () => Promise<void>;
     storage?: P2P.IPeerStorage;
 }
 
 export interface IOptions extends Container.IPluginOptions {
+    apiSync: boolean;
     enabled: boolean;
     fetchTransactions: boolean;
     socket: string;

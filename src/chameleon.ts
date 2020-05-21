@@ -110,6 +110,7 @@ export class Chameleon {
             options.tor.instances = 10;
         }
 
+        options.apiSync = !!options.apiSync;
         options.fetchTransactions = !!options.fetchTransactions;
         options.socket = `${process.env.CORE_PATH_TEMP}/chameleon.sock`;
 

@@ -1,4 +1,5 @@
 export const defaults = {
+    apiSync: false,
     enabled: false,
     fetchTransactions: true,
     tor: {
