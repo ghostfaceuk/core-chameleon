@@ -6,6 +6,14 @@ RESET=$(tput sgr0)
 
 PLUGIN="@alessiodf/core-chameleon"
 LOG=$(mktemp /tmp/core-chameleon.XXX.log)
+
+abort ()
+{
+    rm ${LOG}
+    echo
+    exit 0
+}
+
 heading ()
 {
     echo "${RESET}${BOLD}$1${RESET}"
@@ -17,14 +25,38 @@ error ()
     exit 1
 }
 
+restartprocesses ()
+{
+    readarray -t PROCESSES <<< `(pm2 jlist 2>/dev/null | tail -n1 | jq -r '.[] | select(.name | (endswith("-core") or endswith("-forger") or endswith("-relay"))) | .pm2_env | select(.status == "online") | .name') 2>> ${LOG}`
+    if [ "$?" != "0" ] ; then
+        echo "       ${RED}${BOLD}Could not get list of running processes. Restart your processes for the changes to take effect."
+        error
+    fi
+    if [ "${PROCESSES[0]}" != "" ] ; then
+        for PROCESS in "${PROCESSES[@]}"; do
+            read -p "       ${BOLD}Do you want to restart the ${PROCESS} process now? [y/N]: ${RESET}" CHOICE
+            if [[ "$CHOICE" =~ ^(yes|y|Y) ]] ; then
+                heading "       Restarting ${PROCESS}"
+                pm2 --update-env --silent restart ${PROCESS}
+            fi
+        done
+    fi
+}
+
+GAWK=`which gawk 2> /dev/null`
 TOR=`which tor 2> /dev/null`
 DEB=`which apt-get 2> /dev/null`
 RPM=`which yum 2> /dev/null`
 
-if [[ -z $TOR ]] && ([[ ! -z $DEB ]] || [[ ! -z $RPM ]]) ; then
+trap abort INT
+
+if ([[ -z $TOR ]] || [[ -z $GAWK ]]) && ([[ ! -z $DEB ]] || [[ ! -z $RPM ]]) ; then
     sudo echo -n
 fi
-heading "Core Chameleon"
+
+if [ "$2" == "" ] ; then
+    heading "Core Chameleon"
+fi
 
 readarray -t NETWORKS <<< `ls -1d ~/.config/*-core/*/plugins.js 2>> ${LOG} | cut -d "/" -f5-6`
 if [ "${NETWORKS[0]}" == "" ] ; then
@@ -45,6 +77,25 @@ if [ "$COREPATH" == "" ] && ! [[ -d ~/.config/yarn/global/node_modules/@arkecosy
     echo "${RED}${BOLD}No global ARK Core installation found. Install ARK Core and try again, or specify a path to ARK Core."
     echo "For example: ./$0 ${HOME}/ark-core ${RESET}"
     exit 1
+fi
+
+if [[ -z $GAWK ]] ; then
+    heading "    => Installing GNU Awk"
+    ERR=
+    if [[ ! -z $DEB ]] ; then
+        sudo sh -c 'apt-get update && apt-get install -y gawk' >> ${LOG} 2>>${LOG}
+        ERR=$?
+    elif [[ ! -z $RPM ]] ; then
+        sudo sh -c 'yum update -y && yum install -y gawk' >> ${LOG} 2>>${LOG}
+        ERR=$?
+    else
+        echo "       ${RED}${BOLD}GNU Awk is not installed on this system. Install it manually and try again."
+        exit 1
+    fi
+    if [ "$ERR" != "0" ] ; then
+        echo "       ${RED}${BOLD}GNU Awk installation failed"
+        error
+    fi
 fi
 
 if [[ -z $TOR ]] ; then
@@ -113,23 +164,32 @@ if [[ -d $PLUGINPATH ]] ; then
     else
         CURRENT=`< ${COREPATH}/node_modules/${PLUGIN}/package.json jq -r .version`
     fi
+    CURRENT=0.0.1
     if [[ "$LATEST" != "$CURRENT" ]] ; then
-        heading "    => Updating Plugin from ${CURRENT} to ${LATEST}"
-        if [ "$COREPATH" != "" ] ; then
-            cd ${COREPATH}
-            yarn add -W ${PLUGIN}@${LATEST} >> ${LOG} 2>>${LOG}
-        else
-            yarn global add ${PLUGIN}@${LATEST} >> ${LOG} 2>>${LOG}
-        fi
-        if [ "$?" != "0" ] ; then
-            echo "       ${RED}${BOLD}Plugin update failed"
-            error
-        else
-            heading "       Plugin successfully updated. Restart your processes to use the new version."
+        read -p "       ${BOLD}New version ${LATEST} is available. You are using ${CURRENT}. Update now? [y/N]: ${RESET}" CHOICE
+        if [[ "$CHOICE" =~ ^(yes|y|Y) ]] ; then
+            heading "    => Updating Core Chameleon"
+            if [ "$COREPATH" != "" ] ; then
+                cd ${COREPATH}
+                yarn add -W ${PLUGIN}@${LATEST} >> ${LOG} 2>>${LOG}
+            else
+                yarn global add ${PLUGIN}@${LATEST} >> ${LOG} 2>>${LOG}
+            fi
+            if [ "$?" != "0" ] ; then
+                echo "       ${RED}${BOLD}Core Chameleon update failed"
+                error
+            else
+                heading "    => Update successful"
+                restartprocesses
+                if [[ -f ${PLUGINPATH}/chameleon.sh ]] ; then
+                    bash ${PLUGINPATH}/chameleon.sh "$1" --quiet
+                    exit 0
+                fi
+            fi
         fi   
     fi 
 else
-    heading "    => Installing Plugin"
+    heading "    => Installing Core Chameleon"
     if [ "$COREPATH" != "" ] ; then
         cd ${COREPATH}
         yarn add -W ${PLUGIN} >> ${LOG} 2>>${LOG}
@@ -137,13 +197,13 @@ else
         yarn global add ${PLUGIN} >> ${LOG} 2>>${LOG}
     fi
     if [ "$?" != "0" ] ; then
-        echo "       ${RED}${BOLD}Plugin installation failed"
+        echo "       ${RED}${BOLD}Core Chameleon installation failed"
         error
     fi
 fi
 
 if [ "$?" == "0" ] ; then
-    heading "    => Configuring Plugin"
+    heading "    => Configuring Core Chameleon"
     if [ "${#NETWORKS[@]}" == "1" ] ; then
         CORE=${NETWORKS[0]}
     else
@@ -167,42 +227,47 @@ if [ "$?" == "0" ] ; then
     heading "       Configuring for ${CORE}"
     if [ ! -z "`grep ${PLUGIN} ~/.config/${CORE}/plugins.js`" ] ; then
         ACTION="remove"
-        read -p "       ${BOLD}Plugin is currently present in your Core configuration. Would you like to remove it? [y/N]: ${RESET}" CHOICE
+        read -p "       ${BOLD}Core Chameleon is currently present in your Core configuration. Would you like to remove it? [y/N]: ${RESET}" CHOICE
     else
         ACTION="add"
-        read -p "       ${BOLD}Plugin is not currently present in your Core configuration. Would you like to add it? [y/N]: ${RESET}" CHOICE
+        read -p "       ${BOLD}Core Chameleon is not currently present in your Core configuration. Would you like to add it? [y/N]: ${RESET}" CHOICE
     fi
     ESCAPED=${PLUGIN//\//\\\/}
     if [[ "$CHOICE" =~ ^(yes|y|Y) ]] ; then
         if [[ "$ACTION" == "remove" ]] ; then
-            awk -i inplace '/@alessiodf\/core-chameleon/ {on=1} on && /@/ && !/@alessiodf\/core-chameleon/ {on=0} {if (!on) print}' ~/.config/${CORE}/plugins.js 2>> ${LOG}
+            awk -i inplace "/${ESCAPED}/ {on=1} on && /@/ && !/${ESCAPED}/ {on=0} {if (!on) print}" ~/.config/${CORE}/plugins.js 2>> ${LOG}
             if [ "$?" == "0" ] ; then
-                heading "       Removed plugin from ${CORE} configuration"
+                heading "       Removed Core Chameleon from ${CORE} configuration"
             else
-                echo "       ${RED}${BOLD}Failed to remove plugin for ${CORE}"
+                echo "       ${RED}${BOLD}Failed to remove Core Chameleon for ${CORE}"
                 error
             fi
         else
-            awk -i inplace '/@arkecosystem\/core-p2p/ {on=1} on && /@/ && !/@arkecosystem\/core-p2p/ {print "    \"@alessiodf/core-chameleon\": {\n        enabled: true,\n    },"; on=0} {print}' ~/.config/${CORE}/plugins.js 2>> ${LOG}
+            awk -i inplace "/@arkecosystem\/core-p2p/ {on=1} on && /@/ && !/@arkecosystem\/core-p2p/ {print \"    \\\"${ESCAPED}\\\": {\n        enabled: true,\n    },\"; on=0} {print}" ~/.config/${CORE}/plugins.js 2>> ${LOG}
             if [ "$?" == "0" ] ; then
-                heading "       Added plugin to ${CORE} configuration"
+                heading "       Added Core Chameleon to ${CORE} configuration"
             else
-                echo "       ${RED}${BOLD}Failed to add plugin for ${CORE}"
+                echo "       ${RED}${BOLD}Failed to add Core Chameleon for ${CORE}"
                 error
             fi
         fi
-        readarray -t PROCESSES <<< `(pm2 jlist 2>/dev/null | tail -n1 | jq -r '.[] | select(.name | (endswith("-core") or endswith("-forger") or endswith("-relay"))) | .pm2_env | select(.status == "online") | .name') 2>> ${LOG}`
-        if [ "${PROCESSES[0]}" != "" ] ; then
-            for PROCESS in "${PROCESSES[@]}"; do
-                read -p "       ${BOLD}Do you want to restart the ${PROCESS} process now? [y/N]: ${RESET}" CHOICE
-                if [[ "$CHOICE" =~ ^(yes|y|Y) ]] ; then
-                    heading "       Restarting ${PROCESS}"
-                    pm2 --update-env --silent restart ${PROCESS}
-                fi
-            done
-        fi
+        restartprocesses
     else
         heading "       No changes made"
     fi
     heading "    => Finished"
 fi
+
+if [[ -d $PLUGINPATH ]] ; then
+    if [[ ! -f ${PLUGINPATH}/chameleon.sh ]] ; then
+        cp "$0" ${PLUGINPATH}/chameleon.sh >> ${LOG} 2> ${LOG}
+    fi
+    if [[ -f ~/.bashrc ]] && [[ -z "`grep chameleon ~/.bashrc`" ]] ; then
+        echo "alias chameleon='bash ${PLUGINPATH}/chameleon.sh'" >> ~/.bashrc
+        echo
+        heading "You may now delete `readlink -f "$0"`. To reconfigure or update Core Chameleon in future, type 'chameleon'."
+        exec ${BASH}
+    fi
+fi
+
+rm ${LOG}
