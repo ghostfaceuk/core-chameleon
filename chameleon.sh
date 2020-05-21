@@ -264,7 +264,7 @@ if [[ -d $PLUGINPATH ]] ; then
     if [[ -f ~/.bashrc ]] && [[ -z "`grep \"alias chameleon\" ~/.bashrc`" ]] ; then
         echo "alias chameleon='bash ${PLUGINPATH}/chameleon.sh'" >> ~/.bashrc
         echo
-        heading "You may now delete `readlink -f "$0"`. To reconfigure or update Core Chameleon in future, type 'chameleon'."
+        heading "You may now delete the installation script. To reconfigure or update Core Chameleon in future, type 'chameleon'."
         exec ${BASH}
     fi
 fi
