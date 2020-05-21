@@ -164,7 +164,6 @@ if [[ -d $PLUGINPATH ]] ; then
     else
         CURRENT=`< ${COREPATH}/node_modules/${PLUGIN}/package.json jq -r .version`
     fi
-    CURRENT=0.0.1
     if [[ "$LATEST" != "$CURRENT" ]] ; then
         read -p "       ${BOLD}New version ${LATEST} is available. You are using ${CURRENT}. Update now? [y/N]: ${RESET}" CHOICE
         if [[ "$CHOICE" =~ ^(yes|y|Y) ]] ; then
@@ -262,7 +261,7 @@ if [[ -d $PLUGINPATH ]] ; then
     if [[ ! -f ${PLUGINPATH}/chameleon.sh ]] ; then
         cp "$0" ${PLUGINPATH}/chameleon.sh >> ${LOG} 2> ${LOG}
     fi
-    if [[ -f ~/.bashrc ]] && [[ -z "`grep chameleon ~/.bashrc`" ]] ; then
+    if [[ -f ~/.bashrc ]] && [[ -z "`grep \"alias chameleon\" ~/.bashrc`" ]] ; then
         echo "alias chameleon='bash ${PLUGINPATH}/chameleon.sh'" >> ~/.bashrc
         echo
         heading "You may now delete `readlink -f "$0"`. To reconfigure or update Core Chameleon in future, type 'chameleon'."
