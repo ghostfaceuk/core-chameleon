@@ -26,7 +26,10 @@ const workerCode: string = fs
                 return;`;
         } else if (line.indexOf("req.data.headers.remoteAddress = req.socket.remoteAddress") > -1) {
             return "req.data.headers.remoteAddress = \"127.0.0.1\";";
-        } else if (line.indexOf('version === "internal"') > -1) {
+        } else if (
+            line.indexOf('version === "internal"') > -1 ||
+            line.indexOf("async handleHandshake") > -1
+        ) {
             return `${line}
                 next();
                 return;`;
