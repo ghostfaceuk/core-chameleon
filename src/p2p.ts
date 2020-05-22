@@ -485,15 +485,6 @@ export class P2P implements IModule {
             this.monitor.downloadedChunksCacheMax = 200;
         }
 
-        this.monitor._cleansePeers = this.monitor.cleansePeers;
-        this.monitor.cleansePeers = async (): Promise<void> => {
-            // this becomes a no-op when forging because we take over and do things differently now
-        };
-        this.monitor.refreshPeersAfterFork = async function(): Promise<void> {
-            this.logger.info(`Refreshing ${this.storage.getPeers().length} peers after fork`);
-            await this._cleansePeers({ forcePing: true });
-        };
-
         this.monitor.downloadBlocksFromHeight = async function(
             fromBlockHeight: number,
             maxParallelDownloads: number = 10

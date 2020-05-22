@@ -80,10 +80,12 @@ export class Tor implements IModule {
                         if (data.indexOf("100%") > 0) {
                             instances++;
                             if (maxInstances > 1) {
-                                this.logger.debug(`Established ${instances} of ${maxInstances} Tor circuits`);
+                                this.logger.debug(
+                                    `Established ${instances} of ${maxInstances} Tor circuits`
+                                );
                             } else {
                                 this.logger.debug("Established a single Tor circuit");
-                            } 
+                            }
                             if (instances === maxInstances) {
                                 this.logger.info("Core Chameleon successfully started Tor");
                                 this.logger.info(

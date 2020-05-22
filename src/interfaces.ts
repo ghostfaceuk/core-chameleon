@@ -56,7 +56,6 @@ export interface IModule {
 }
 
 export interface IMonitor extends P2P.INetworkMonitor {
-    _cleansePeers?: () => Promise<void>;
     communicator?: ICommunicator;
     connector?: IConnector;
     downloadedChunksCacheMax?: number;
