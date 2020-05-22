@@ -51,7 +51,7 @@ export class Tor implements IModule {
     }
 
     private killPid(): void {
-        spawnSync("pkill", [`-f ${process.env.CORE_PATH_TEMP}/tor.conf`], {
+        spawnSync("pkill", [`-f ${process.env.CORE_PATH_TEMP}/tor/`], {
             shell: true
         });
     }
@@ -79,6 +79,11 @@ export class Tor implements IModule {
                     torProcess.stdout.on("data", (data: string) => {
                         if (data.indexOf("100%") > 0) {
                             instances++;
+                            if (maxInstances > 1) {
+                                this.logger.debug(`Established ${instances} of ${maxInstances} Tor circuits`);
+                            } else {
+                                this.logger.debug("Established a single Tor circuit");
+                            } 
                             if (instances === maxInstances) {
                                 this.logger.info("Core Chameleon successfully started Tor");
                                 this.logger.info(
