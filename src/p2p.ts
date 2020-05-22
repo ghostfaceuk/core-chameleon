@@ -156,14 +156,22 @@ export class P2P implements IModule {
             this.discoverPeers();
             return;
         }
-        if (this.pool) {
-            const slicedPeers: CoreP2P.IPeer[] = peers.slice(0, 10);
-            this.fetchTransactionsFromPeers(
-                slicedPeers.map(
-                    (peer: CoreP2P.IPeer): string =>
-                        `http://${peer.ip}:${peer.ports["@arkecosystem/core-api"]}/api/transactions/unconfirmed?transform=false`
+        if (this.pool && !this.fetchingTransactions) {
+            const slicedPeers: CoreP2P.IPeer[] = shuffle(
+                peers.filter(
+                    (peer: CoreP2P.IPeer) =>
+                        !isNaN(peer.ports["@arkecosystem/core-api"]) &&
+                        peer.ports["@arkecosystem/core-api"] > -1
                 )
-            );
+            ).slice(0, 10);
+            if (slicedPeers.length > 0) {
+                this.fetchTransactionsFromPeers(
+                    slicedPeers.map(
+                        (peer: CoreP2P.IPeer): string =>
+                            `http://${peer.ip}:${peer.ports["@arkecosystem/core-api"]}/api/transactions/unconfirmed?transform=false`
+                    )
+                );
+            }
         }
     }
 
