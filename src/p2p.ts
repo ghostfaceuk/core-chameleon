@@ -403,11 +403,30 @@ export class P2P implements IModule {
                             );
                         }
                     }
-                    if (height === 0 && blocks.length > 0) {
-                        this.processBlocks({ data: blocks }, peer, foundBlocks, minimumPeers);
-                    } else {
-                        if (height > 0) {
-                            return blocks;
+                    const blocksToProcess: Interfaces.IBlockData[] = blocks.map(
+                        (incomingBlock: Interfaces.IBlockData) => {
+                            const block: Interfaces.IBlock = Blocks.BlockFactory.fromData(
+                                incomingBlock,
+                                { deserializeTransactionsUnchecked: true }
+                            );
+                            return {
+                                ...block.data,
+                                transactions: block.transactions.map(
+                                    (transaction: Interfaces.ITransaction) => transaction.data
+                                )
+                            };
+                        }
+                    );
+                    if (blocksToProcess.length > 0) {
+                        if (height === 0) {
+                            this.processBlocks(
+                                { data: blocksToProcess },
+                                peer,
+                                foundBlocks,
+                                minimumPeers
+                            );
+                        } else if (height > 0) {
+                            return blocksToProcess;
                         }
                     }
                 }
