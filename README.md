@@ -4,8 +4,6 @@
 
 THIS SOFTWARE IS PROVIDED “AS IS”. THE DEVELOPER DISCLAIMS ANY AND ALL WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION THE IMPLIED WARRANTIES OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE. THE DEVELOPER SPECIFICALLY DOES NOT WARRANT THAT THE SOFTWARE WILL BE ERROR-FREE, ACCURATE, RELIABLE, COMPLETE OR UNINTERRUPTED.
 
-**Do not run this software on a production network or mainnet! This version is for testing only.**
-
 # Introduction
 
 Core Chameleon is a plugin for ARK Core 2.6 which is specifically designed for forging delegate node operators to externally close their peer-to-peer port, which is vulnerable to denial-of-service and other attacks. It also hides the IP address of the node by routing all traffic via Tor, ensuring total anonymity which prevents the identification of the node or its hosting provider. The plugin also enables the full and complete operation of a relay or forging node when running behind a firewall, which may be useful for some corporate users that cannot open an external port but still want to receive live blocks and transactions on the network. It also has other benefits which transcend beyond security, such as being able to run multiple conflicting networks on the same server.
@@ -36,25 +34,35 @@ This plugin eliminates that barrier, allowing the same server with the same IP a
 
 Please note that operators may also need to adjust their configuration files to close or change the port of any other overlapping services such as the public API used by any conflicting networks as this plugin only handles the P2P port. This is straightforward as these other ports are not hardcoded and may be changed without causing issues, unlike the P2P port in Core 2.6.
 
-## Installation and Updates
+## Installation
 
-**REMINDER: This is pre-release software and should not be used on any production-ready network or mainnet!**
-
-Core Chameleon includes a script that will automatically download the plugin, install Tor and configure your node to enable (or disable) the plugin. The same script will also install any updates that are released in future.
-
-Download the script:
+Core Chameleon includes a script that will automatically download the plugin, install Tor and configure your node. Download it as follows:
 
 ```
-curl -o install.sh https://raw.githubusercontent.com/alessiodf/core-chameleon/master/chameleon.sh
+curl -o chameleon.sh https://raw.githubusercontent.com/alessiodf/core-chameleon/master/chameleon.sh
 ```
 
-If you have installed ARK Core using the default installation script provided by ARK Ecosystem, execute the script with `bash ./install.sh`. If you have installed from Git (for example, via the ARK Deployer or Core Control program), execute the script by including the path to your Core installation. For example, in the case of nOS, run `bash ./install.sh /home/nos/nos-core`.
+If you have installed ARK Core using the default installation script provided by ARK Ecosystem, execute the script with `bash chameleon.sh --install`. If you have installed from Git (for example, via the ARK Deployer or Core Control program), execute the script by including the path to your Core installation. For example, in the case of nOS, run `bash chameleon.sh --install /home/nos/nos-core`.
 
-This will install Tor and other dependencies (if they are not already installed), then download and install the latest version of the Core Chameleon plugin. Once complete, you should delete this file.
+This will install Tor and other dependencies (if they are not already installed), then download and install the latest version of the Core Chameleon plugin. If you are already using the Block Propagator plugin, the installation script will ask if you want to disable it. Core Chameleon supersedes Block Propagator, and the two plugins may clash if used together, so it is strongly recommended that you disable Block Propagator if it is present.
 
-In future, you can check for any updates and enable or disable the plugin on demand by running `chameleon` or in the case of a Git-based installation, by also adding the path to Core, such as `chameleon /home/nos/nos-core`.
+Once the installation is complete, you should delete this file.
 
-Remember to restart your node's processes (`core` or the `forger` and `relay` combination) when you reconfigure the plugin.
+## Updates, Configuration and Removal
+
+Once installed, you can check for any updates and enable or disable the plugin on demand by running `chameleon` and specifying the action you want, for example `chameleon --update`. Valid actions are listed below:
+
+`--enable`: Enables Core Chameleon in your Core configuration.
+
+`--disable`: Disables Core Chameleon in your Core configuration.
+
+`--install`: Installs Core Chameleon (for example, if you have multiple installations of Core and wish to install another copy of Core Chameleon in another path).
+
+`--remove`: Removes Core Chameleon.
+
+`--update`: Updates Core Chameleon to the latest version.
+
+In the case of a Git-based installation, you must also add the path to Core after the action, such as `chameleon --update /home/nos/nos-core`.
 
 ## Manual Configuration
 
