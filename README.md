@@ -8,6 +8,8 @@ THIS SOFTWARE IS PROVIDED “AS IS”. THE DEVELOPER DISCLAIMS ANY AND ALL WARRA
 
 Core Chameleon is a plugin for ARK Core 2.6 which is specifically designed for forging delegate node operators to externally close their peer-to-peer port, which is vulnerable to denial-of-service and other attacks. It also hides the IP address of the node by routing all traffic via Tor, ensuring total anonymity which prevents the identification of the node or its hosting provider. The plugin also enables the full and complete operation of a relay or forging node when running behind a firewall, which may be useful for some corporate users that cannot open an external port but still want to receive live blocks and transactions on the network. It also has other benefits which transcend beyond security, such as being able to run multiple conflicting networks on the same server.
 
+**If you are installing this plugin on a forging node, please also consider running an additional non-forging open relay (without this plugin) on a separate server, and do this for every forging node that you install this plugin on. Remember, every node running this plugin becomes invisible - which is a good thing for the security of forging nodes! - but the network needs publicly available open relays as they are essential for the network to function correctly.**
+
 ### Hide your IP address
 
 The plugin uses Tor so the originating IP address cannot be identified since it is never revealed to any other ARK Core node, nor does it appear in peer lists. Multiple Tor circuits are used to transmit data between other nodes to minimise latency and maintain connectivity even if one or more Tor nodes go offline.
