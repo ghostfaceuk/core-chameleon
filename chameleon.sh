@@ -223,7 +223,7 @@ remove ()
             yarn global remove ${PLUGIN} >> "${LOG}" 2>>"${LOG}"
         fi
         rm -rf "${PLUGINPATH}"
-        if [[ -f ~/.bashrc ]] && grep -q "alias chameleon" ~/.bashrc]; then
+        if [[ -f ~/.bashrc ]] && grep -q "alias chameleon" ~/.bashrc; then
             gawk -i inplace "/alias chameleon/ {on=1} on && !/alias chameleon/ {on=0} {if (!on) print}" ~/.bashrc 2>> "${LOG}"
         fi
         heading "    => Removed Core Chameleon"
@@ -251,6 +251,7 @@ restartprocesses ()
 
 update ()
 {
+    heading "    => Checking for updates"
     if [[ -d ${PLUGINPATH} ]]; then
         LATEST=$(curl "https://registry.npmjs.org/${PLUGIN}" 2> /dev/null | jq -r .'"dist-tags"'.latest)
         if [ "${COREPATH}" == "" ]; then
@@ -259,7 +260,7 @@ update ()
             CURRENT=$(< "${COREPATH}"/node_modules/${PLUGIN}/package.json jq -r .version)
         fi
         if [[ "${LATEST}" != "${CURRENT}" ]]; then
-            read -rp "       ${BOLD}New version ${LATEST} is available. You are using ${CURRENT}. Update now? [Y/n]: ${RESET}" CHOICE
+            read -rp "       ${BOLD}New version ${LATEST} is available. You are using version ${CURRENT}. Update now? [Y/n]: ${RESET}" CHOICE
             if [[ ! "${CHOICE}" =~ ^(no|n|N) ]]; then
                 heading "    => Updating Core Chameleon"
                 if [ "${COREPATH}" != "" ]; then
