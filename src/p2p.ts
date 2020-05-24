@@ -7,7 +7,6 @@ import {
     State,
     TransactionPool
 } from "@arkecosystem/core-interfaces";
-import { getHeaders } from "@arkecosystem/core-p2p/dist/socket-server/utils/get-headers";
 import { httpie } from "@arkecosystem/core-utils";
 import { isBlockChained } from "@arkecosystem/core-utils/dist/is-block-chained";
 import { Blocks, Crypto, Interfaces } from "@arkecosystem/crypto";
@@ -83,32 +82,6 @@ export class P2P implements IModule {
         this.server.workerCluster.removeAllListeners("exit");
         this.server.killWorkers({ killClusterMaster: true });
         this.server._launchWorkerCluster();
-
-        const listener = this.server.listeners("workerMessage")[0];
-        // @ts-ignore
-        this.server.removeListener("workerMessage", listener);
-        this.server.on(
-            // @ts-ignore
-            "workerMessage",
-            async (
-                workerId: number,
-                req: { endpoint: string; data: { block: Buffer } },
-                res: (_: undefined, response: object) => void
-            ): Promise<void> => {
-                if (req.endpoint === "p2p.peer.postBlock") {
-                    const block: Interfaces.IBlock = Blocks.BlockFactory.fromHex(
-                        Buffer.from(req.data.block).toString("hex")
-                    );
-                    const peers: CoreP2P.IPeer[] = this.storage.getPeers();
-                    peers.map((peer: CoreP2P.IPeer) => this.communicator.postBlock(peer, block));
-                    return res(undefined, {
-                        data: {},
-                        headers: getHeaders()
-                    });
-                }
-                return await listener(workerId, req, res);
-            }
-        );
     }
 
     public async start(): Promise<void> {
