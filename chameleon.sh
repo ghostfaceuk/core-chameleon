@@ -366,6 +366,18 @@ if [ "${COREPATH}" == "" ] && ! [[ -d ~/.config/yarn/global/node_modules/@arkeco
     exit 1
 fi
 
+if [ "${COREPATH}" == "" ]; then
+    COREVERSION=$(< ~/.config/yarn/global/node_modules/@arkecosystem/core/package.json jq -r .version)
+else
+    COREVERSION=$(< "${2}"/packages/core/package.json jq -r .version)
+fi
+
+MINVERSION=2.6
+if { echo "${COREVERSION}"; echo ${MINVERSION}; } | sort -n -c 2>/dev/null; then
+    echo "${RED}${BOLD}Core Chameleon requires ARK Core 2.6. You have version ${COREVERSION}.${RESET}"
+    exit 1
+fi
+
 PLUGINPATH=~/.config/yarn/global/node_modules/${PLUGIN}
 if [ "${COREPATH}" != "" ]; then
     PLUGINPATH=${COREPATH}/node_modules/${PLUGIN}
