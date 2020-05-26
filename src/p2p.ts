@@ -209,40 +209,41 @@ export class P2P implements IModule {
     }
 
     private async download(): Promise<void> {
-        this.abort = false;
-        const peerList: CoreP2P.IPeer[] = shuffle(this.storage.getPeers());
-        const peers: CoreP2P.IPeer[] = peerList
-            .filter(
-                (peer: CoreP2P.IPeer): boolean =>
-                    !peer.isForked() &&
-                    !isNaN(peer.ports["@arkecosystem/core-api"]) &&
-                    peer.ports["@arkecosystem/core-api"] > 0 &&
-                    peer.ports["@arkecosystem/core-api"] < 65536
-            )
-            .slice(0, 5);
-
         const lastBlock: Interfaces.IBlockData = this.stateStore.getLastBlock().data;
 
-        if (peers.length > 0) {
-            if (
-                !this.stateStore.lastDownloadedBlock ||
-                lastBlock.id === this.stateStore.lastDownloadedBlock.id
-            ) {
-                const foundBlocks: IBlocks = {
-                    height: lastBlock.height + 1,
-                    blocks: {}
-                };
-                for (const peer of peers) {
-                    if (this.abort) {
-                        break;
+        if (this.blockchain.state.blockchain.value === "idle") {
+            this.abort = false;
+            const peerList: CoreP2P.IPeer[] = shuffle(this.storage.getPeers());
+            const peers: CoreP2P.IPeer[] = peerList
+                .filter(
+                    (peer: CoreP2P.IPeer): boolean =>
+                        !peer.isForked() &&
+                        !isNaN(peer.ports["@arkecosystem/core-api"]) &&
+                        peer.ports["@arkecosystem/core-api"] > 0 &&
+                        peer.ports["@arkecosystem/core-api"] < 65536
+                )
+                .slice(0, 5);
+            if (peers.length > 0) {
+                if (
+                    !this.stateStore.lastDownloadedBlock ||
+                    lastBlock.id === this.stateStore.lastDownloadedBlock.id
+                ) {
+                    const foundBlocks: IBlocks = {
+                        height: lastBlock.height + 1,
+                        blocks: {}
+                    };
+                    for (const peer of peers) {
+                        if (this.abort) {
+                            break;
+                        }
+                        this.getBlocks(
+                            peer,
+                            foundBlocks,
+                            peers.length > 2 ? 1 : 0,
+                            peer.ports["@arkecosystem/core-api"],
+                            0
+                        );
                     }
-                    this.getBlocks(
-                        peer,
-                        foundBlocks,
-                        peers.length > 2 ? 1 : 0,
-                        peer.ports["@arkecosystem/core-api"],
-                        0
-                    );
                 }
             }
         }
@@ -685,7 +686,8 @@ export class P2P implements IModule {
             if (
                 chainedBlocks.length > 0 &&
                 !this.abort &&
-                chainedBlocks[0].height === this.stateStore.getLastBlock().data.height + 1
+                chainedBlocks[0].height === this.stateStore.getLastBlock().data.height + 1 &&
+                this.blockchain.state.blockchain.value === "idle"
             ) {
                 if (chainedBlocks.length === 1) {
                     this.logger.info(
