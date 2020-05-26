@@ -254,11 +254,7 @@ update ()
     heading "    => Checking for updates"
     if [[ -d ${PLUGINPATH} ]]; then
         LATEST=$(curl "https://registry.npmjs.org/${PLUGIN}" 2> /dev/null | jq -r .'"dist-tags"'.latest)
-        if [ "${COREPATH}" == "" ]; then
-            CURRENT=$(< ~/.config/yarn/global/node_modules/${PLUGIN}/package.json jq -r .version)
-        else
-            CURRENT=$(< "${COREPATH}"/node_modules/${PLUGIN}/package.json jq -r .version)
-        fi
+        CURRENT=$(< "${PLUGINPATH}"/package.json jq -r .version)
         if [[ "${LATEST}" != "${CURRENT}" ]]; then
             read -rp "       ${BOLD}New version ${LATEST} is available. You are using version ${CURRENT}. Update now? [Y/n]: ${RESET}" CHOICE
             if [[ ! "${CHOICE}" =~ ^(no|n|N) ]]; then
@@ -284,6 +280,17 @@ update ()
         fi
     else
         echo "${RED}${BOLD}No Core Chameleon installation found. Run this script with '--install' instead of '--update' and try again.${RESET}"
+        exit 1
+    fi
+}
+
+version ()
+{
+    if [[ -d ${PLUGINPATH} ]]; then
+        CURRENT=$(< "${PLUGINPATH}"/package.json jq -r .version)
+        heading "    => Core Chameleon version ${CURRENT} is installed"
+    else
+        echo "${RED}${BOLD}No Core Chameleon installation found. Run this script with '--install' instead of '--version' and try again.${RESET}"
         exit 1
     fi
 }
@@ -316,6 +323,9 @@ case "${1}" in
     "--upgrade")
         ACTION="update"
        ;;
+    "--version")
+        ACTION="version"
+       ;;
 esac
 
 if [[ "${ACTION}" == "install" ]] && { [[ -z ${TOR} ]] || [[ -z ${GAWK} ]]; } && { [[ -n ${DEB} ]] || [[ -n ${RPM} ]]; }; then
@@ -331,6 +341,7 @@ if [[ "${ACTION}" == "" ]]; then
     heading "    => --install - Installs Core Chameleon"
     heading "    => --remove - Removes Core Chameleon"
     heading "    => --update - Updates Core Chameleon to the latest version"
+    heading "    => --version - Prints the currently installed version of Core Chameleon"
     echo
     heading "If you have installed ARK Core from Git or ARK Deployer, also specify the path to ARK Core."
     EXAMPLE="bash ${0##*/} --install"
@@ -414,5 +425,8 @@ case "${ACTION}" in
        ;;
     "remove")
         remove
+       ;;
+    "version")
+        version
        ;;
 esac
