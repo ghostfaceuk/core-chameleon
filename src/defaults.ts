@@ -4,7 +4,10 @@ export const defaults = {
     fetchTransactions: true,
     tor: {
         enabled: true,
-        instances: 10,
+        instances: {
+            max: 10,
+            min: 3
+        },
         path: undefined
     }
 };

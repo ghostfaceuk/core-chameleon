@@ -64,6 +64,8 @@ Once installed, you can check for any updates and enable or disable the plugin o
 
 `--update`: Updates Core Chameleon to the latest version.
 
+`--version`: Prints the currently installed version of Core Chameleon.
+
 In the case of a Git-based installation, you must also add the path to Core after the action, such as `chameleon --update /home/nos/nos-core`.
 
 ## Manual Configuration
@@ -77,7 +79,10 @@ Upon installation, Core Chameleon will use sane defaults that will be sufficient
     fetchTransactions: true,
     tor: {
         enabled: true,
-        instances: 10,
+        instances: {
+           max: 10,
+           min: 3
+        },
         path: undefined
     }
 }
@@ -91,7 +96,9 @@ Upon installation, Core Chameleon will use sane defaults that will be sufficient
 
 `tor.enabled`: This is used to enable or disable the use of Tor in the plugin. By setting this to `false`, your IP address can still be identified via other ARK Core nodes, although it will not appear in peer lists. However, even with Tor disabled, you will still benefit from the other features of Core Chameleon, such as the closure of the P2P port, compatibility with firewalls and the ability to run multiple conflicting networks. Default: `true`.
 
-`tor.instances`: This number determines how many Tor circuits will be opened. The minimum is 1 and the maximum is 10. More circuits use more system resources but improve peering, redundancy and latency by opening multiple connections to different Tor nodes to distribute the traffic. Default: `10`.
+`tor.instances.max`: This number determines how many Tor circuits will be opened in total. The minimum is 1 and the maximum is 10. More circuits use more system resources but improve peering, redundancy and latency by opening multiple connections to different Tor nodes to distribute the traffic. Default: `10`.
+
+`tor.instances.min`: This number determines the minimum amount of Tor circuits that must be opened before Core will start. The minimum is 1 and the maximum is 10. Fewer circuits allow Core to start sooner, but potentially at the expense of redundancy, latency and peering while Core initialises. Default: `3`.
 
 `tor.path`: This should point to the binary executable path for Tor, in case you have installed it manually in a non-standard location. Otherwise, the plugin will attempt to automatically detect the location based on common system paths. Default: `undefined`.
 

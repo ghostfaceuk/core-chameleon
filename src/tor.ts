@@ -38,7 +38,6 @@ export class Tor implements IModule {
 
         try {
             await this.spawn(torPath);
-            this.emitter.emit("Chameleon.P2P.TorReady");
         } catch (error) {
             this.logger.error(error);
         }
@@ -60,7 +59,9 @@ export class Tor implements IModule {
         return new Promise((resolve: (_: void) => void, reject: (error: string) => void): void => {
             try {
                 let instances: number = 0;
-                const maxInstances: number = this.options.tor.instances;
+                const maxInstances: number = this.options.tor.instances.max;
+                const minInstances: number = this.options.tor.instances.min;
+
                 for (let i: number = 0; i < maxInstances; i++) {
                     const directory: string = `${process.env.CORE_PATH_TEMP}/tor/${i}`;
                     if (!existsSync(directory)) {
@@ -78,6 +79,16 @@ export class Tor implements IModule {
                     torProcess.stdout.setEncoding("utf8");
                     torProcess.stdout.on("data", (data: string) => {
                         if (data.indexOf("100%") > 0) {
+                            if (!this.started) {
+                                this.started = true;
+                                this.logger.info("Core Chameleon successfully started Tor");
+                            }
+                            // @ts-ignore
+                            const torArguments: string[] = torProcess.spawnargs[2].split("/");
+                            this.emitter.emit(
+                                "Chameleon.P2P.TorReady",
+                                parseInt(torArguments[torArguments.length - 1])
+                            );
                             instances++;
                             if (maxInstances > 1) {
                                 this.logger.debug(
@@ -86,12 +97,18 @@ export class Tor implements IModule {
                             } else {
                                 this.logger.debug("Established a single Tor circuit");
                             }
-                            if (instances === maxInstances) {
-                                this.logger.info("Core Chameleon successfully started Tor");
-                                this.logger.info(
-                                    "Your true IP address will not appear in the logs of other relays"
-                                );
-                                this.started = true;
+                            if (instances === maxInstances || instances >= minInstances) {
+                                if (instances === minInstances) {
+                                    this.logger.debug(
+                                        "Successfully established the minimum required Tor circuits to continue"
+                                    );
+                                    this.logger.info(
+                                        "Your true IP address will not appear in the logs of other relays"
+                                    );
+                                }
+                                if (instances === maxInstances) {
+                                    this.logger.debug("Successfully established all Tor circuits");
+                                }
                                 resolve();
                             }
                         }

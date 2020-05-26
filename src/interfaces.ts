@@ -71,7 +71,10 @@ export interface IOptions extends Container.IPluginOptions {
     socket: string;
     tor: {
         enabled: boolean;
-        instances: number;
+        instances: {
+            max: number;
+            min: number;
+        };
         path: string;
     };
 }

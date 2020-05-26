@@ -97,17 +97,31 @@ export class Chameleon {
 
     private sanitiseOptions(options: IOptions): IOptions {
         if (typeof options.tor !== "object") {
-            options.tor = { enabled: false, instances: 1, path: undefined };
+            options.tor = { enabled: false, instances: { max: 1, min: 1 }, path: undefined };
         }
 
-        options.tor.instances = parseInt(String(options.tor.instances));
-
-        if (isNaN(options.tor.instances) || options.tor.instances < 1) {
-            options.tor.instances = 1;
+        if (typeof options.tor.instances !== "object") {
+            options.tor.instances = { max: 1, min: 1 };
         }
 
-        if (options.tor.instances > 10) {
-            options.tor.instances = 10;
+        if (isNaN(options.tor.instances.max) || options.tor.instances.max < 1) {
+            options.tor.instances.max = 1;
+        }
+
+        if (isNaN(options.tor.instances.min) || options.tor.instances.min < 1) {
+            options.tor.instances.max = 1;
+        }
+
+        if (options.tor.instances.max > 10) {
+            options.tor.instances.max = 10;
+        }
+
+        if (options.tor.instances.min > 10) {
+            options.tor.instances.min = 10;
+        }
+
+        if (options.tor.instances.min > options.tor.instances.max) {
+            options.tor.instances.min = options.tor.instances.max;
         }
 
         options.apiSync = !!options.apiSync;

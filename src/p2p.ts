@@ -60,12 +60,10 @@ export class P2P implements IModule {
     }
 
     public init(): void {
-        this.emitter.on("Chameleon.P2P.TorReady", (): void => {
-            for (let i: number = 0; i < this.options.tor.instances; i++) {
-                this.agent.push(
-                    new Agent({ host: `${process.env.CORE_PATH_TEMP}/tor/${i}/socks.sock` })
-                );
-            }
+        this.emitter.on("Chameleon.P2P.TorReady", (instance: number): void => {
+            this.agent.push(
+                new Agent({ host: `${process.env.CORE_PATH_TEMP}/tor/${instance}/socks.sock` })
+            );
         });
 
         if (existsSync(this.options.socket)) {
