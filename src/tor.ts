@@ -95,21 +95,21 @@ export class Tor implements IModule {
                                     `Established ${instances} of ${maxInstances} Tor circuits`
                                 );
                             } else {
-                                this.logger.debug("Established a single Tor circuit");
+                                this.logger.debug("Successfully established a single Tor circuit");
                             }
-                            if (instances === maxInstances || instances >= minInstances) {
-                                if (instances === minInstances) {
+                            if (instances === minInstances) {
+                                if (minInstances !== maxInstances) {
                                     this.logger.debug(
                                         "Successfully established the minimum required Tor circuits to continue"
                                     );
-                                    this.logger.info(
-                                        "Your true IP address will not appear in the logs of other relays"
-                                    );
                                 }
-                                if (instances === maxInstances) {
-                                    this.logger.debug("Successfully established all Tor circuits");
-                                }
+                                this.logger.info(
+                                    "Your true IP address will not appear in the logs of other relays"
+                                );
                                 resolve();
+                            }
+                            if (instances === maxInstances && maxInstances > 1) {
+                                this.logger.debug("Successfully established all Tor circuits");
                             }
                         }
                     });
