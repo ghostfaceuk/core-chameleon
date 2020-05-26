@@ -54,6 +54,7 @@ export class P2P implements IModule {
     private local: SocketClusterClient.SCClientSocket;
     private pool: TransactionPool.IConnection;
     private stateStore: State.IStateStore;
+    private txIds: object = {};
 
     public constructor(options: IOptions) {
         this.options = options;
@@ -109,6 +110,7 @@ export class P2P implements IModule {
 
         if (this.options.fetchTransactions) {
             this.pool = app.resolvePlugin<TransactionPool.IConnection>("transaction-pool");
+            setInterval(() => this.clearTransactions(), 60000);
         }
 
         this.emitter.on("Chameleon.P2P.LastBlockHeight", (block: { height: number }): void => {
@@ -143,6 +145,16 @@ export class P2P implements IModule {
                             `http://${peer.ip}:${peer.ports["@arkecosystem/core-api"]}/api/transactions/unconfirmed?transform=false`
                     )
                 );
+            }
+        }
+    }
+
+    private clearTransactions(): void {
+        const timeNow: number = new Date().getTime() / 1000;
+        const txIds: string[] = Object.keys(this.txIds);
+        for (const id of txIds) {
+            if (timeNow - this.txIds[id] > 3600) {
+                delete this.txIds[id];
             }
         }
     }
@@ -272,8 +284,9 @@ export class P2P implements IModule {
                         const alreadyInBlockchain: boolean = !!(await this.database.transactionsBusinessRepository.findById(
                             transaction.id
                         ));
-                        if (!alreadyInPool && !alreadyInBlockchain) {
+                        if (!alreadyInPool && !alreadyInBlockchain && !this.txIds[transaction.id]) {
                             transactionsToAdd.push(transaction);
+                            this.txIds[transaction.id] = new Date().getTime() / 1000;
                         }
                     }
 
