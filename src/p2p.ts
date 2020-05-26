@@ -123,9 +123,10 @@ export class P2P implements IModule {
         setInterval(() => this.discoverPeers(), 10000);
     }
 
-    private checkPeersAndTransactions(): void {
+    private async checkPeersAndTransactions(): Promise<void> {
         const peers: CoreP2P.IPeer[] = this.storage.getPeers();
         if (peers.length < app.resolveOptions("p2p").minimumNetworkReach) {
+            await this.monitor.populateSeedPeers();
             this.discoverPeers();
             return;
         }
