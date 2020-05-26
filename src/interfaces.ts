@@ -1,6 +1,7 @@
 import { Blockchain, Container, P2P } from "@arkecosystem/core-interfaces";
 import { Interfaces } from "@arkecosystem/crypto";
 import { AgentOptions } from "agent-base";
+import { AsyncQueue } from "async";
 import { EventEmitter } from "events";
 import { SocksProxy } from "socks";
 import { Url } from "url";
@@ -25,6 +26,7 @@ export interface IBaseAgentOptions {
 
 export interface IBlockchain extends Blockchain.IBlockchain {
     enqueueBlocks: (blocks: Interfaces.IBlockData[]) => void;
+    queue: AsyncQueue<any>;
 }
 
 export interface IBlockResponse {

@@ -209,7 +209,10 @@ export class P2P implements IModule {
     private async download(): Promise<void> {
         const lastBlock: Interfaces.IBlockData = this.stateStore.getLastBlock().data;
 
-        if (this.blockchain.state.blockchain.value === "idle") {
+        if (
+            this.blockchain.queue.length() === 0 &&
+            this.blockchain.state.blockchain.value === "idle"
+        ) {
             this.abort = false;
             const peerList: CoreP2P.IPeer[] = shuffle(this.storage.getPeers());
             const peers: CoreP2P.IPeer[] = peerList
@@ -661,8 +664,9 @@ export class P2P implements IModule {
         if (
             blocks &&
             blocks.length > 0 &&
-            isBlockChained(lastBlock, blocks[0]) &&
-            this.blockchain.state.blockchain.value === "idle"
+            this.blockchain.queue.length() === 0 &&
+            this.blockchain.state.blockchain.value === "idle" &&
+            isBlockChained(lastBlock, blocks[0])
         ) {
             for (const block of blocks) {
                 if (!foundBlocks.blocks[block.id]) {
@@ -691,8 +695,10 @@ export class P2P implements IModule {
                 chainedBlocks.length > 0 &&
                 !this.abort &&
                 chainedBlocks[0].height === this.stateStore.getLastBlock().data.height + 1 &&
+                this.blockchain.queue.length() === 0 &&
                 this.blockchain.state.blockchain.value === "idle"
             ) {
+                this.abort = true;
                 if (chainedBlocks.length === 1) {
                     this.logger.info(
                         `Received new block at height ${chainedBlocks[0].height.toLocaleString()} with ${pluralize(
@@ -706,7 +712,6 @@ export class P2P implements IModule {
                     this.blockchain.enqueueBlocks(chainedBlocks);
                     this.blockchain.dispatch("DOWNLOADED");
                 }
-                this.abort = true;
             }
         }
     }
