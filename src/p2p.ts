@@ -237,7 +237,7 @@ export class P2P implements IModule {
                         this.getBlocks(
                             peer,
                             foundBlocks,
-                            peers.length > 2 ? 1 : 0,
+                            peers.length > 2 ? 2 : 1,
                             peer.ports["@arkecosystem/core-api"],
                             0
                         );
@@ -658,17 +658,23 @@ export class P2P implements IModule {
         }
         const blocks: Interfaces.IBlockData[] = response.data;
         let lastBlock: Interfaces.IBlockData = this.stateStore.getLastBlock().data;
-        if (blocks && blocks.length > 0 && isBlockChained(lastBlock, blocks[0])) {
+        if (
+            blocks &&
+            blocks.length > 0 &&
+            isBlockChained(lastBlock, blocks[0]) &&
+            this.blockchain.state.blockchain.value === "idle"
+        ) {
             for (const block of blocks) {
                 if (!foundBlocks.blocks[block.id]) {
-                    foundBlocks.blocks[block.id] = 0;
+                    foundBlocks.blocks[block.id] = {};
                 }
-                foundBlocks.blocks[block.id]++;
+                foundBlocks.blocks[block.id][peer.ip] = true;
             }
 
             const blocksFromMultiplePeers: Interfaces.IBlockData[] = blocks.filter(
                 (block): boolean =>
-                    foundBlocks.blocks[block.id] && foundBlocks.blocks[block.id] > minimumPeers
+                    foundBlocks.blocks[block.id] &&
+                    Object.keys(foundBlocks.blocks[block.id]).length >= minimumPeers
             );
             const chainedBlocks: Interfaces.IBlockData[] = [];
 
