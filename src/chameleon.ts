@@ -40,7 +40,7 @@ export class Chameleon {
             readFileSync(__dirname + "/../package.json").toString()
         );
 
-        let shouldRestart: boolean = false;
+        let configuredForger: boolean = false;
 
         if (existsSync(appFile)) {
             const appContents: IAppConfig = require(appFile);
@@ -52,7 +52,7 @@ export class Chameleon {
                     // tslint:disable-next-line
                     `module.exports = ${inspect(appContents, false, null)}`
                 );
-                shouldRestart = true;
+                configuredForger = true;
             }
         } else {
             let forgerConfig: string =
@@ -72,14 +72,14 @@ export class Chameleon {
                             '"@arkecosystem/core-forger",\n                "' + pkgFile.name + '",'
                         )
                     );
-                    shouldRestart = true;
+                    configuredForger = true;
                 }
             } else {
                 logger.warn("Core Chameleon could not find app.js or run.js to reconfigure forger");
             }
         }
 
-        if (shouldRestart) {
+        if (configuredForger) {
             logger.info("Installed Core Chameleon in forger configuration");
 
             try {
