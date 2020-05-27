@@ -39,16 +39,47 @@ export class Chameleon {
         const pkgFile: IPackage = JSON.parse(
             readFileSync(__dirname + "/../package.json").toString()
         );
-        const appContents: IAppConfig = require(appFile);
 
-        if (!appContents.cli.forger.run.plugins.include.includes(pkgFile.name)) {
-            appContents.cli.forger.run.plugins.include.push(pkgFile.name);
-            writeFileSync(
-                `${process.env.CORE_PATH_CONFIG}/app.js`,
-                // tslint:disable-next-line
-                `module.exports = ${inspect(appContents, false, null)}`
-            );
+        let shouldRestart: boolean = false;
 
+        if (existsSync(appFile)) {
+            const appContents: IAppConfig = require(appFile);
+
+            if (!appContents.cli.forger.run.plugins.include.includes(pkgFile.name)) {
+                appContents.cli.forger.run.plugins.include.push(pkgFile.name);
+                writeFileSync(
+                    `${process.env.CORE_PATH_CONFIG}/app.js`,
+                    // tslint:disable-next-line
+                    `module.exports = ${inspect(appContents, false, null)}`
+                );
+                shouldRestart = true;
+            }
+        } else {
+            let forgerConfig: string =
+                __dirname + "/../../../@arkecosystem/core/dist/commands/forger/run.js";
+            if (!existsSync(forgerConfig)) {
+                forgerConfig =
+                    __dirname +
+                    "/../../../node_modules/@arkecosystem/core/dist/commands/forger/run.js";
+            }
+            if (existsSync(forgerConfig)) {
+                const forgerContents: string = readFileSync(forgerConfig).toString();
+                if (forgerContents.indexOf(pkgFile.name) === -1) {
+                    writeFileSync(
+                        forgerConfig,
+                        forgerContents.replace(
+                            /\"@arkecosystem\/core-forger\",/g,
+                            '"@arkecosystem/core-forger",\n                "' + pkgFile.name + '",'
+                        )
+                    );
+                    shouldRestart = true;
+                }
+            } else {
+                logger.warn("Core Chameleon could not find app.js or run.js to reconfigure forger");
+            }
+        }
+
+        if (shouldRestart) {
             logger.info("Installed Core Chameleon in forger configuration");
 
             try {
