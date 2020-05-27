@@ -106,26 +106,31 @@ enable () {
     networks
     ESCAPED=${PLUGIN//\//\\\/}
     if ! grep -q ${PLUGIN} ~/.config/"${CORE}"/plugins.js; then
-        if gawk -i inplace "/@arkecosystem\/core-p2p/ {on=1} on && /@/ && !/@arkecosystem\/core-p2p/ {print \"    \\\"${ESCAPED}\\\": {\n        enabled: true,\n    },\"; on=0} {print}" ~/.config/"${CORE}"/plugins.js 2>> "${LOG}"; then
-            heading "    => Enabled for ${CORE}"
-            if grep -q alessiodf/block-propagator ~/.config/"${CORE}"/plugins.js; then
-                read -rp "       ${BOLD}Core Chameleon supersedes Block Propagator, which is enabled. Disable Block Propagator now? [Y/n]: ${RESET}" CHOICE
-                if [[ ! "${CHOICE}" =~ ^(no|n|N) ]]; then
-                    if gawk -i inplace "/@alessiodf\/block-propagator/ {on=1} on && /@/ && !/@alessiodf\/block-propagator/ {on=0} {if (!on) print}" ~/.config/"${CORE}"/plugins.js 2>> "${LOG}"; then
-                        heading "    => Disabled Block Propagator for ${CORE}"
+        if grep -q "\"@arkecosystem/core-p2p\": {" ~/.config/"${CORE}"/plugins.js; then
+            if gawk -i inplace "/@arkecosystem\/core-p2p/ {on=1} on && /@/ && !/@arkecosystem\/core-p2p/ {print \"    \\\"${ESCAPED}\\\": {\n        enabled: true,\n    },\"; on=0} {print}" ~/.config/"${CORE}"/plugins.js 2>> "${LOG}"; then
+                heading "    => Enabled for ${CORE}"
+                if grep -q alessiodf/block-propagator ~/.config/"${CORE}"/plugins.js; then
+                    read -rp "       ${BOLD}Core Chameleon supersedes Block Propagator, which is enabled. Disable Block Propagator now? [Y/n]: ${RESET}" CHOICE
+                    if [[ ! "${CHOICE}" =~ ^(no|n|N) ]]; then
+                        if gawk -i inplace "/@alessiodf\/block-propagator/ {on=1} on && /@/ && !/@alessiodf\/block-propagator/ {on=0} {if (!on) print}" ~/.config/"${CORE}"/plugins.js 2>> "${LOG}"; then
+                            heading "    => Disabled Block Propagator for ${CORE}"
+                        else
+                            echo "       ${RED}${BOLD}Failed to remove Block Propagator for ${CORE}${RESET}"
+                        fi
                     else
-                        echo "       ${RED}${BOLD}Failed to remove Block Propagator for ${CORE}${RESET}"
+                        heading "       ${YELLOW}WARNING: The two plugins might conflict!${RESET}"
                     fi
-                else
-                    heading "       ${YELLOW}WARNING: The two plugins might conflict!${RESET}"
+                fi
+                restartprocesses
+            else
+                echo "       ${RED}${BOLD}Failed to enable Core Chameleon for ${CORE}"
+                if [ "${1}" == "" ]; then
+                    error
                 fi
             fi
-            restartprocesses
         else
-            echo "       ${RED}${BOLD}Failed to enable Core Chameleon for ${CORE}"
-            if [ "${1}" == "" ]; then
-                error
-            fi
+            echo "       ${RED}${BOLD}Cannot automatically enable Core Chameleon as this network uses a custom plugins.js format.${RESET}"
+            echo "       ${RED}${BOLD}Please follow the manual instructions at: https://github.com/alessiodf/core-chameleon#manual-configuration${RESET}"
         fi
     else
         echo "       ${RED}${BOLD}Core Chameleon was already present in your Core configuration file.${RESET}"
