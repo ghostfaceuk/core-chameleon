@@ -83,16 +83,21 @@ disable () {
     heading "    => Disabling Core Chameleon"
     networks
     ESCAPED=${PLUGIN//\//\\\/}
-    if grep -q ${PLUGIN} ~/.config/"${CORE}"/plugins.js; then
-        if gawk -i inplace "/${ESCAPED}/ {on=1} on && /@/ && !/${ESCAPED}/ {on=0} {if (!on) print}" ~/.config/"${CORE}"/plugins.js 2>> "${LOG}"; then
-            heading "    => Disabled for ${CORE}"
-            restartprocesses
+    if grep -q "\"@arkecosystem/core-p2p\": {" ~/.config/"${CORE}"/plugins.js; then
+        if grep -q ${PLUGIN} ~/.config/"${CORE}"/plugins.js; then
+            if gawk -i inplace "/${ESCAPED}/ {on=1} on && /@/ && !/${ESCAPED}/ {on=0} {if (!on) print}" ~/.config/"${CORE}"/plugins.js 2>> "${LOG}"; then
+                heading "    => Disabled for ${CORE}"
+                restartprocesses
+            else
+                echo "       ${RED}${BOLD}Failed to disable Core Chameleon for ${CORE}"
+                error
+            fi
         else
-            echo "       ${RED}${BOLD}Failed to disable Core Chameleon for ${CORE}"
-            error
+            echo "       ${RED}${BOLD}Core Chameleon was not present in your Core configuration file.${RESET}"
         fi
     else
-        echo "       ${RED}${BOLD}Core Chameleon was not present in your Core configuration file.${RESET}"
+        echo "       ${RED}${BOLD}Cannot automatically disable Core Chameleon as this network uses a custom plugins.js format.${RESET}"
+        echo "       ${RED}${BOLD}Please follow the manual instructions at: https://github.com/alessiodf/core-chameleon#manual-configuration${RESET}"
     fi
 }
 
