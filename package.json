@@ -1,14 +1,16 @@
 {
     "name": "@alessiodf/core-chameleon",
     "description": "Core Chameleon for ARK Core",
-    "version": "0.0.9",
+    "homepage": "https://github.com/alessiodf/core-chameleon",
+    "version": "1.0.0",
     "contributors": [
         "alessiodf <alessiodf@pm.me>"
     ],
     "license": "GPL-3.0-or-later",
     "main": "dist/index.js",
     "files": [
-        "dist"
+        "dist/*.js",
+        "chameleon.sh"
     ],
     "scripts": {
         "compile": "../../node_modules/typescript/bin/tsc",
