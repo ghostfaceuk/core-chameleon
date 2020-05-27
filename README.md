@@ -70,7 +70,35 @@ In the case of a Git-based installation, you must also add the path to Core afte
 
 ## Manual Configuration
 
-Upon installation, Core Chameleon will use sane defaults that will be sufficient for most users to provide all the necessary protection and functionality including Tor anonymity. However, some options can be configured in `plugins.js` if you so desire. All the options, and their default values, are outlined below:
+The automated tool will attempt to enable Core Chameleon with sane defaults that should be sufficient for most users to provide all the necessary protection and functionality including Tor anonymity. However, some bridgechains may use a custom Core configuration file format which Core Chameleon's installation tool cannot understand, so in those cases you must manually configure it.
+
+In its most basic form, you should add the following code block to your Core configuration file (usually `plugins.js` but may vary depending on bridgechain) **immediately after the `@arkecosystem/core-p2p` block** to enable Core Chameleon using the default settings:
+
+```
+"@alessiodf/core-chameleon": {
+    enabled: true,
+},
+
+```
+
+For example, your `plugins.js` file should look similar to this:
+
+```
+...
+"@arkecosystem/core-p2p": {
+    server: {
+        port: process.env.CORE_P2P_PORT || 4001,
+    },
+},
+"@alessiodf/core-chameleon": {
+    enabled: true,
+},
+"@arkecosystem/core-state": {},
+...
+
+```
+
+If you would like to deviate from the default behaviour of Core Chameleon, please see below for a list of all of the options and their default values.
 
 ```
 "@alessiodf/core-chameleon": {
@@ -81,11 +109,11 @@ Upon installation, Core Chameleon will use sane defaults that will be sufficient
         enabled: true,
         instances: {
            max: 10,
-           min: 3
+           min: 3,
         },
-        path: undefined
-    }
-}
+        path: undefined,
+    },
+},
 ```
 
 `apiSync`: This will determine whether Core should initially sync with the network using the P2P layer or the Public API. Using the P2P layer is much faster, so is the default, but can sometimes be unreliable over Tor due to the high volume of data that may be transferred via a single websocket. If you experience problems syncing via the P2P layer, you can set this to `true` to use the Public API instead which will split the load more evenly across multiple Tor nodes. Be aware that this will be significantly slower but more stable. Default: `false`.
