@@ -377,18 +377,18 @@ else
     COREPATH=${2}
 fi
 
-if [ "${COREPATH}" == "" ] && ! [[ -d ~/.config/yarn/global/node_modules/@arkecosystem/core ]]; then
+if [ "${COREPATH}" == "" ] && ! [[ -d ~/.config/yarn/global/node_modules/@blockpool-io/core ]]; then
     echo "${RED}${BOLD}No global BPL Core installation found. Install BPL Core and try again, or specify a path to BPL Core."
     EXAMPLE="bash ${0##*/}"
     if [[ -f ~/.bashrc ]] && grep -q "alias chameleon" ~/.bashrc; then
         EXAMPLE="chameleon"
     fi
-    echo "For example: ${EXAMPLE} --${ACTION} ${HOME}/ark-core ${RESET}"
+    echo "For example: ${EXAMPLE} --${ACTION} ${HOME}/bpl-core ${RESET}"
     exit 1
 fi
 
 if [ "${COREPATH}" == "" ]; then
-    COREVERSION=$(< ~/.config/yarn/global/node_modules/@arkecosystem/core/package.json jq -r .version)
+    COREVERSION=$(< ~/.config/yarn/global/node_modules/@blockpool-io/core/package.json jq -r .version)
 else
     COREVERSION=$(< "${2}"/packages/core/package.json jq -r .version)
 fi
