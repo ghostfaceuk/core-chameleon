@@ -56,11 +56,11 @@ export class Chameleon {
             }
         } else {
             let forgerConfig: string =
-                __dirname + "/../../../@arkecosystem/core/dist/commands/forger/run.js";
+                __dirname + "/../../../@blockpool-io/core/dist/commands/forger/run.js";
             if (!existsSync(forgerConfig)) {
                 forgerConfig =
                     __dirname +
-                    "/../../../node_modules/@arkecosystem/core/dist/commands/forger/run.js";
+                    "/../../../node_modules/@blockpool-io/core/dist/commands/forger/run.js";
             }
             if (existsSync(forgerConfig)) {
                 const forgerContents: string = readFileSync(forgerConfig).toString();
@@ -68,8 +68,8 @@ export class Chameleon {
                     writeFileSync(
                         forgerConfig,
                         forgerContents.replace(
-                            /\"@arkecosystem\/core-forger\",/g,
-                            '"@arkecosystem/core-forger",\n                "' + pkgFile.name + '",'
+                            /\"@blockpool-io\/core-forger\",/g,
+                            '"@blockpool-io/core-forger",\n                "' + pkgFile.name + '",'
                         )
                     );
                     configuredForger = true;
