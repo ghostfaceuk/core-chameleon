@@ -134,8 +134,8 @@ export class P2P implements IModule {
             const slicedPeers: CoreP2P.IPeer[] = shuffle(
                 peers.filter(
                     (peer: CoreP2P.IPeer) =>
-                        !isNaN(peer.ports["@arkecosystem/core-api"]) &&
-                        peer.ports["@arkecosystem/core-api"] > -1
+                        !isNaN(peer.ports["@blockpool-io/core-api"]) &&
+                        peer.ports["@blockpool-io/core-api"] > -1
                 )
             ).slice(0, 10);
             if (slicedPeers.length > 0) {
@@ -168,8 +168,8 @@ export class P2P implements IModule {
         const peerList: CoreP2P.IPeer[] = shuffle(this.storage.getPeers())
             .filter(
                 (peer: CoreP2P.IPeer) =>
-                    !isNaN(peer.ports["@arkecosystem/core-api"]) &&
-                    peer.ports["@arkecosystem/core-api"] > -1
+                    !isNaN(peer.ports["@blockpool-io/core-api"]) &&
+                    peer.ports["@blockpool-io/core-api"] > -1
             )
             .slice(0, 10);
         const newPeers: Map<string, CoreP2P.IPeer> = new Map();
@@ -231,9 +231,9 @@ export class P2P implements IModule {
                 .filter(
                     (peer: CoreP2P.IPeer): boolean =>
                         !peer.isForked() &&
-                        !isNaN(peer.ports["@arkecosystem/core-api"]) &&
-                        peer.ports["@arkecosystem/core-api"] > 0 &&
-                        peer.ports["@arkecosystem/core-api"] < 65536
+                        !isNaN(peer.ports["@blockpool-io/core-api"]) &&
+                        peer.ports["@blockpool-io/core-api"] > 0 &&
+                        peer.ports["@blockpool-io/core-api"] < 65536
                 )
                 .slice(0, 5);
             if (peers.length > 0) {
@@ -253,7 +253,7 @@ export class P2P implements IModule {
                             peer,
                             foundBlocks,
                             peers.length > 2 ? 2 : 1,
-                            peer.ports["@arkecosystem/core-api"],
+                            peer.ports["@blockpool-io/core-api"],
                             0
                         );
                     }
@@ -568,9 +568,9 @@ export class P2P implements IModule {
                     for (peer of peersToTry) {
                         peerPrint = `${peer.ip}:${
                             chunkSize === 100 &&
-                            peer.ports["@arkecosystem/core-api"] &&
-                            peer.ports["@arkecosystem/core-api"] !== -1
-                                ? peer.ports["@arkecosystem/core-api"]
+                            peer.ports["@blockpool-io/core-api"] &&
+                            peer.ports["@blockpool-io/core-api"] !== -1
+                                ? peer.ports["@blockpool-io/core-api"]
                                 : peer.port
                         }`;
                         try {
@@ -649,7 +649,7 @@ export class P2P implements IModule {
             if (!this.stateStore) {
                 this.stateStore = app.resolvePlugin<State.IStateService>("state").getStore();
             }
-            const port: number = peer.ports["@arkecosystem/core-api"];
+            const port: number = peer.ports["@blockpool-io/core-api"];
             if (!this.options.apiSync || isNaN(port) || port === -1) {
                 return this.communicator._getPeerBlocks(peer, {
                     fromBlockHeight,
