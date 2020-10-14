@@ -6,7 +6,7 @@ import {
     P2P as CoreP2P,
     State,
     TransactionPool
-} from "@arkecosystem/core-interfaces";
+} from "@blockpool/core-interfaces";
 import { httpie } from "@blockpool-io/core-utils";
 import { isBlockChained } from "@blockpool-io/core-utils/dist/is-block-chained";
 import { Blocks, Crypto, Interfaces } from "@blockpool-io/crypto";
