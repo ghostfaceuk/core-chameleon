@@ -1,4 +1,4 @@
-import { app } from "@arkecosystem/core-container";
+import { app } from "@blockpool-io/core-container";
 import {
     Database,
     EventEmitter,
@@ -7,9 +7,9 @@ import {
     State,
     TransactionPool
 } from "@arkecosystem/core-interfaces";
-import { httpie } from "@arkecosystem/core-utils";
-import { isBlockChained } from "@arkecosystem/core-utils/dist/is-block-chained";
-import { Blocks, Crypto, Interfaces } from "@arkecosystem/crypto";
+import { httpie } from "@blockpool-io/core-utils";
+import { isBlockChained } from "@blockpool-io/core-utils/dist/is-block-chained";
+import { Blocks, Crypto, Interfaces } from "@blockpool-io/crypto";
 import { existsSync, unlinkSync } from "fs";
 import { Agent } from "./agent";
 import {
